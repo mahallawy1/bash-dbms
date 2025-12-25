@@ -2,14 +2,13 @@
 
 
 
-currentdb='students' # this will be replaced by connect to db " method i guess
+currentdb='' # this will be replaced by connect to db " method i guess
 main_menu(){
 
 
     PS3="Choose an option: "
-# echo#### "press 0 to exit 
 
-    options=("Create Database" "List Databases" "Connect To Database" "Drop Database" "create table" "List Tables" "Drop Tables" "Select From Table" "Insert Into Table" )
+    options=("Create Database" "List Databases" "Connect To Database" "Drop Database" )
 
     while true; do
         clear
@@ -23,11 +22,6 @@ main_menu(){
                 2) list_databases; break ;;
                 3) connect_database; break ;;
                 4) drop_database; break ;;
-               5)create_table; break ;;
-                6) list_tables; break ;;
-                7) drop_table; break ;;
-                8) select_table; break;;
-                9) insert_into_table ;;
                 0) echo "Exiting"; exit 0 ;;
                 *) echo "Invalid choice"; sleep 1; break ;;
             esac
@@ -63,15 +57,31 @@ list_databases() {
     read -p "Press Enter to continue..."
 }
 connect_database() {
-    read -p "Database name to connect: " DBName
-    if [[ -d "Databases/$DBName" ]]; then
-        echo "Connected to database '$DBName'"
-        currentdb="$DBName"
-        read -p "Press any key to return to main menu"
-    else
-        echo "Database '$DBName' does not exist"
-        read -p "Press any key to continue"
+ls Databases
+echo ""
+
+
+echo -n "choose database name: "
+    read db_name
+    
+    if [[ -z "$db_name" ]]; then
+    	echo "Database name can not be empty"
+    	read -p "press any button to continue"
+    	return
     fi
+
+    if [ ! -d "Databases/$db_name" ]; then
+        echo "Error: database '$db_name' not found"
+        echo ""
+        echo -n "Press Enter to continue..."
+        read
+        return
+    fi
+        echo "Connected to database '$DBName'"
+        currentdb="$db_name"
+        table_menu
+        $currentdb=''
+        main_menu
 }
 
 drop_database() {
@@ -94,12 +104,40 @@ drop_database() {
 }
 
 # ###############################################################################table opereations
+table_menu() {
+    PS3="Table Menu: "
+    options=("Create Table" "List Tables" "Drop Table" "Insert Data" "Select Table" "Delete Data" "Update Data" "Let's do SQL"  "Back to Main Menu")
+
+    while true; do
+        clear
+        echo "=============================="
+        echo "        Table Menu"
+        echo " Database: $(basename "$PWD")"
+        echo "=============================="
+
+        select opt in "${options[@]}"; do
+            case $REPLY in
+                1) create_table; break ;;
+                2) list_tables; break ;;
+                3) drop_table; break ;;
+                4) insert_into_table; break ;;
+                5) select_table; break ;;
+                6) delete_data; break ;;
+                7) update_table; break ;;
+                8) quiring; break ;;
+                9) return ;;
+                *) echo "Invalid choice"; sleep 1; break ;;
+            esac
+        done
+    done
+}
+
 create_table() {
  echo "craeting new table...."
-    echo -n "entter table name: " 
-read tablename
+ read -p "Enter table name: " tablename
+    
  table_file="Databases/$currentdb/$tablename"
-    meta_file="Databases/$currentdb/${tablename}.meta"
+ meta_file="Databases/$currentdb/${tablename}.meta"
 
 if [ -z "$tablename" ]; then
         echo "error: name cannot be empty!"
@@ -168,13 +206,18 @@ list_tables() {
     echo -n "Press Enter to continue..."
     read
 }
+
 select_table(){
+    echo "listing all tables ..."
+    ls "Databases/$currentdb" | grep -v '\.meta$'
+    
     echo "selecting from table...."
     echo "entter table name: " 
      read tablename
     table_file="Databases/$currentdb/$tablename"
- if [ ! -f "$table_file" ]; then
+ if [[ ! -f "$table_file" ]]; then
     echo "Table not found!"
+    read -p "Enter any button to continue"
     return
 fi
 echo "Table data:"
@@ -183,36 +226,44 @@ echo "Table data:"
     read -p "Press Enter to continue..."
 }
 
-drop_table() { 
+drop_table() {
+	echo "available tables ... "
+	ls "Databases/$currentdb/$tablename" | grep -v '\.meta$'
+	
 echo "enter table name to drop: "
  read table
  table_file="Databases/$currentdb/$table"
  meta_file="Databases/$currentdb/${table}.meta"
- if [ ! -f "$table_file" ]; then
+ if [[ ! -f "$table_file" ]]; then
  echo "Table not found!"
+ read -p "Press Enter to continue..."
  return
  fi 
  read -p "Are you sure you want to delete '$table'? [Y/N]: " check
-  
-if [[ "$check" =~ ^[Yy]$ ]]; then
-
-echo "Drop table cancelled."
- return 
+if [[ !"$check" =~ ^[Yy]$ ]]; then
+	echo "Drop table cancelled."
+	read -p "Press Enter to continue..."
+ 	return 
 fi 
 rm -f "$table_file" "$meta_file"
- echo "Table '$table' and its metadata have been deleted." 
+ echo "Table '$table' and its metadata have been deleted."
+ read -p "Press Enter to continue..."
 }
 
 
 insert_into_table() {
+	echo "available tables..."
+	ls "Databases/$currentdb/$tablename" | grep -v '\.meta$'
+
     echo "Enter table name: " 
-read tablename
+    read tablename
     table_file="Databases/$currentdb/$tablename"
     meta_file="Databases/$currentdb/${tablename}.meta"
 
 
-     if [ ! -f "$table_file" ]; then
+     if [[ ! -f "$table_file" ]]; then
         echo "Table not found!"
+        read -p "Press Enter to continue..."
         return
       fi
     colnames=$(grep "^names:" "$meta_file" | cut -d: -f2)
@@ -253,6 +304,234 @@ echo "$row" >> "$table_file"
  echo "done inserting.... " 
 read -p "Press Enter to continue..."
 }
+
+update_table() {
+
+    echo "let's update table"
+    echo ""
+    
+	echo "listing all tables ..."
+    ls "Databases/$currentdb" | grep -v '\.meta$'
+
+    echo -n "enter table name: "
+    read tablename
+
+    table_file="Databases/$currentdb/$tablename"
+    meta_file="Databases/$currentdb/${tablename}.meta"
+
+    if [[ ! -f "$table_file" ]]; then
+        echo "table not found!"
+        read -p "Enter any key to continue"
+        return
+    fi
+
+    colnames=$(grep "^names:" "$meta_file" | cut -d: -f2)
+    nocols=$(grep "^nocolumns:" "$meta_file" | cut -d: -f2)
+    datatypes=$(grep "^datatypes:" "$meta_file" | cut -d: -f2)
+    pk=$(grep "^pk:" "$meta_file" | cut -d: -f2)
+
+    IFS="-" read -ra cols <<< "$colnames"
+    IFS="-" read -ra types <<< "$datatypes"
+
+    echo ""
+    echo "selecting columns from: $colnames"
+    echo ""
+
+    echo -n "enter column name to update: "
+    read colselect
+
+    echo -n "enter new value: "
+    read valselect
+
+    echo -n "enter an id to search: "
+    read id
+
+    row=$(grep "^$id-" "$table_file")
+
+    if [[ -z "$row" ]]; then
+        echo "Record with id $id not found"
+        read -p "Enter any key to continue"
+        return
+    fi
+
+    # split row into fields
+    IFS="-" read -ra fields <<< "$row"
+
+    index=-1
+    for i in "${!cols[@]}"; do
+        if [[ "${cols[i]}" == "$colselect" ]]; then
+            index=$i
+            break
+        fi
+    done
+
+    if [[ $index -eq -1 ]]; then
+        echo "Column not found"
+        read -p "Enter any key to continue"
+        return
+    fi
+
+    # update selected column
+    fields[$index]="$valselect"
+
+    # rebuild row
+    new_row=$(IFS=-; echo "${fields[*]}")
+
+    # replace old row
+    sed -i "s/^$id-.*/$new_row/" "$table_file"
+
+    echo "Done"
+    read -p "Enter any key to continue"
+}
+
+delete_data()
+{
+    echo "let's delte table"
+    echo ""
+    
+    echo "listing all tables ..."
+    ls "Databases/$currentdb" | grep -v '\.meta$'
+    echo ""
+
+    echo -n "enter table name: "
+    read tablename
+
+    table_file="Databases/$currentdb/$tablename"
+    meta_file="Databases/$currentdb/${tablename}.meta"
+
+    if [[ ! -f "$table_file" ]]; then
+        echo "table not found!"
+        read -p "Enter any key to continue"
+        return
+    fi
+
+    colnames=$(grep "^names:" "$meta_file" | cut -d: -f2)
+    nocols=$(grep "^nocolumns:" "$meta_file" | cut -d: -f2)
+    datatypes=$(grep "^datatypes:" "$meta_file" | cut -d: -f2)
+    pk=$(grep "^pk:" "$meta_file" | cut -d: -f2)
+
+    IFS="-" read -ra cols <<< "$colnames"
+    IFS="-" read -ra types <<< "$datatypes"
+
+    echo ""
+    echo "selecting columns from: $colnames"
+    echo ""
+
+    echo -n "enter an id to search: "
+    read id
+
+    row=$(grep "^$id-" "$table_file")
+
+    if [[ -z "$row" ]]; then
+        echo "Record with id $id not found"
+        read -p "Enter any key to continue"
+        return
+    fi
+
+    # split row into fields
+    IFS="-" read -ra fields <<< "$row"
+
+    for i in "${!cols[@]}"; do
+        fields[i]=""
+    done
+
+    # rebuild row
+    new_row=$(echo "${fields[*]}")
+
+    # replace old row
+    sed -i "s/^$id-.*/$new_row/" "$table_file"
+
+    echo "Done"
+    read -p "Enter any key to continue"
+}
+
+
+
+quiring() {
+
+    echo "let's do  sql "
+    echo ""
+    
+	echo "listing all tables ..."
+    ls "Databases/$currentdb" | grep -v '\.meta$'
+# ###########################################
+  echo -n "select * "
+    
+echo -n "from "
+read tablename
+ echo -n "where id = "
+    read id
+
+# ##########################################
+
+
+    table_file="Databases/$currentdb/$tablename"
+    meta_file="Databases/$currentdb/${tablename}.meta"
+
+    if [[ ! -f "$table_file" ]]; then
+        echo "table not found!"
+        read -p "Enter any key to continue"
+        return
+    fi
+
+    colnames=$(grep "^names:" "$meta_file" | cut -d: -f2)
+    nocols=$(grep "^nocolumns:" "$meta_file" | cut -d: -f2)
+    datatypes=$(grep "^datatypes:" "$meta_file" | cut -d: -f2)
+    pk=$(grep "^pk:" "$meta_file" | cut -d: -f2)
+
+    IFS="-" read -ra cols <<< "$colnames"
+    IFS="-" read -ra types <<< "$datatypes"
+
+    echo ""
+    echo "selecting columns from: $colnames"
+
+
+ echo ""
+# ##########################
+    row=$(grep "^$id-" "$table_file")
+
+    if [[ -z "$row" ]]; then
+        echo "Record with id $id not found"
+        read -p "Enter any key to continue"
+        return
+    fi
+echo "$row"
+echo ""
+    echo "Done"
+    read -p "Enter any key to continue"
+}
+
+
+
+
+
+
+
+# todo:
+# ui menu 
+# some quires 
+
+
+
+
+
+# validate data types for both update and delete
+
+# organizing list tables functions to make it usable everywhere
+# allowing update and delete with more details
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
