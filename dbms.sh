@@ -1,10 +1,14 @@
 #!/bin/bash
 
+./welcome.sh
+echo "loading... :)" 
+mkdir -p Databases
+sleep 2.5
+
 
 
 currentdb='' # this will be replaced by connect to db " method i guess
 main_menu(){
-
 
     PS3="Choose an option: "
 
@@ -451,7 +455,7 @@ quiring() {
 
     echo "let's do  sql "
     echo ""
-    
+# to do : we can make usr choose all ar  one column to view ehen add logic to it    
 	echo "listing all tables ..."
     ls "Databases/$currentdb" | grep -v '\.meta$'
 # ###########################################
@@ -513,7 +517,7 @@ echo ""
 
 
 
-
+# edits
 
 # validate data types for both update and delete
 
